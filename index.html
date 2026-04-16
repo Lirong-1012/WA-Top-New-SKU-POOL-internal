@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopee Fashion 内部选品系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #EE4D2D; 
+            --primary-light: #fff5f2;
+            --primary-dark: #d73211;
+            --accent: #F4A855;
+            --accent2: #7C6BED;
+            --bg: #faf8f9;
+            --card-bg: #ffffff;
+            --text: #2d2038;
+            --text-muted: #9b8fa0;
+            --border: #f0e8ed;
+            --success: #27ae60;
+            --success-bg: #eafaf1;
+            --info: #2980b9;
+            --info-bg: #eaf4fb;
+            --tag-bg: #fff3f7;
+            --danger: #eb4d4b;
+            --danger-bg: #fff1f0;
+            --shadow: 0 2px 16px rgba(238,77,45,0.07);
+            --shadow-hover: 0 8px 32px rgba(238,77,45,0.16);
+            --radius: 16px;
+            --radius-sm: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'DM Sans', 'PingFang SC', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #FF6633 0%, #EE4D2D 50%, #D02D11 100%);
+            color: white;
+            padding: 36px 40px 28px;
+            position: relative;
+            overflow: hidden;
+        }
+        header::before {
+            content: '';
+            position: absolute; top: -60px; right: -60px;
+            width: 280px; height: 280px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 50%;
+        }
+        .header-inner { max-width: 1280px; margin: 0 auto; position: relative; z-index: 1; }
+        header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        header h1 .badge {
+            background: #000;
+            color: #fff;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        .header-desc {
+            margin-top: 14px;
+            background: rgba(0,0,0,0.1);
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            line-height: 1.8;
+            max-width: 700px;
+            border-left: 3px solid #fff;
+        }
+        
+        .last-update-tag {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            background: rgba(255,255,255,0.15);
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .container { max-width: 1280px; margin: 0 auto; padding: 28px 24px; }
+
+        .filter-section {
+            background: var(--card-bg);
+            padding: 20px 24px;
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .filter-row + .filter-row { margin-top: 12px; }
+        .filter-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+        input[type="text"], input[type="number"], select {
+            padding: 9px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            color: var(--text);
+            background: var(--bg);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+        
+        .count-badge {
+            margin-left: auto;
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 13px;
+            padding: 6px 14px;
+            border-radius: 20px;
+        }
+        .btn-clear {
+            padding: 9px 16px;
+            background: transparent;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            border-color: #ffd6cc;
+        }
+
+        .site-tag {
+            position: absolute; top: 10px; left: 10px;
+            background: var(--primary);
+            color: white;
+            font-size: 10px; font-weight: 700;
+            padding: 3px 8px; border-radius: 20px;
+            z-index: 10;
+        }
+
+        /* 新品标签样式 */
+        .new-sku-label {
+            position: absolute; top: 10px; right: 10px;
+            background: var(--accent);
+            color: white;
+            font-size: 10px; font-weight: 800;
+            padding: 3px 10px; border-radius: 4px;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .img-container {
+            width: 100%; height: 220px;
+            background: #fffafa;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            cursor: zoom-in;
+            position: relative;
+        }
+        .img-container img {
+            max-width: 100%; max-height: 100%;
+            object-fit: contain;
+        }
+
+        .info { padding: 14px 16px; flex-grow: 1; display: flex; flex-direction: column; gap: 8px; }
+
+        .item-title {
+            font-weight: 600; font-size: 14px; line-height: 1.45; height: 40px;
+            overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            color: var(--text);
+        }
+
+        .price-row { display: flex; align-items: baseline; gap: 6px; }
+        .price-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+        .price-value { color: var(--primary); font-size: 18px; font-weight: 700; }
+        .price-local { color: var(--text-muted); font-size: 13px; font-weight: 400; }
+
+        .meta-row { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+        .pill { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; border: 1px solid transparent; }
+        .pill-cat { background: var(--tag-bg); color: var(--primary-dark); border-color: #f5c5d2; }
+        .pill-ado-pos { background: #f0fff4; color: #1a7a40; border-color: #b2dfca; }
+        .pill-ado-neg { background: var(--danger-bg); color: var(--danger); border-color: #facdcd; }
+
+        .stats-row { display: flex; gap: 8px; }
+        .stat-box {
+            flex: 1; background: var(--bg); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 8px 5px; text-align: center;
+        }
+        .stat-label { font-size: 10px; color: var(--text-muted); font-weight: 600; margin-bottom: 3px; }
+        .stat-value { font-size: 14px; font-weight: 700; }
+        .stat-value.sales-val { color: var(--success); }
+        .stat-value.revenue-val { color: var(--info); }
+
+        .extra-info { font-size: 11px; color: var(--text-muted); display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; padding-top: 8px; border-top: 1px dashed var(--border); }
+        .extra-item { display: flex; gap: 4px; }
+        .extra-label { font-weight: 600; color: #666; white-space: nowrap; }
+
+        .footer-row {
+            display: flex; justify-content: space-between; align-items: center;
+            border-top: 1px solid var(--border); padding-top: 10px; margin-top: auto;
+            font-size: 11px; color: var(--text-muted);
+        }
+        
+        .itemid-box {
+            font-family: monospace; background: var(--bg); padding: 2px 7px;
+            border-radius: 4px; border: 1px dashed #ddd; cursor: pointer;
+        }
+
+        .view-btn {
+            background: var(--info);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 10px;
+            margin-left: 4px;
+            transition: background 0.2s;
+        }
+        .view-btn:hover { background: var(--info-bg); color: var(--info); }
+
+        #imageModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center; cursor: zoom-out;
+        }
+        #imageModal img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+
+        #toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: #333; color: white; padding: 10px 22px; border-radius: 30px;
+            font-size: 13px; opacity: 0; transition: all 0.3s; z-index: 10000;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        .pagination { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 32px 0; }
+        .pagination button { padding: 8px 16px; border: 1.5px solid var(--border); background: white; cursor: pointer; border-radius: var(--radius-sm); }
+        
+        footer { text-align: center; color: var(--text-muted); font-size: 11px; padding: 40px; border-top: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-inner">
+        <h1>👗 Shopee Fashion 女装选品清单 <span class="badge">Internal Only</span></h1>
+        <div class="header-desc">
+            ✨ <strong>精选热销品与潜力新品</strong> · 涵盖多站点，帮你快速锁定爆款选品<br>
+            📊 日均销量、日销售额及价格均为真实数据（未脱敏），<strong>日销售额统一为人民币 (¥)</strong><br>
+            🔒 提示：当前页面仅供内部选品使用。
+        </div>
+        <div class="last-update-tag" id="lastUpdateDisplay">数据更新中...</div>
+    </div>
+</header>
+
+<div class="container">
+    <div class="filter-section">
+        <div class="filter-row">
+            <span class="filter-label">🔍</span>
+            <input type="text" id="searchInput" placeholder="搜索标题 / ID / 店铺 / 团队..." oninput="debouncedFilter()">
+            
+            <select id="l1Filter" onchange="updateL2(); applyFilters()">
+                <option value="">L1 类目</option>
+            </select>
+            <select id="l2Filter" onchange="updateL3(); applyFilters()">
+                <option value="">L2 类目</option>
+            </select>
+            <select id="l3Filter" onchange="applyFilters()">
+                <option value="">L3 类目</option>
+            </select>
+
+            <span class="filter-label">价格 (¥)</span>
+            <input type="number" id="minPrice" placeholder="Min" oninput="debouncedFilter()" style="width:70px;">
+            <input type="number" id="maxPrice" placeholder="Max" oninput="debouncedFilter()" style="width:70px;">
+            
+            <select id="sortOrder" onchange="applyFilters()">
+                <option value="dateDesc">日期倒序 ↑</option>
+                <option value="priceDesc">价格 ↓</option>
+                <option value="salesDesc">日销量 ↓</option>
+                <option value="revDesc">日销售额 ↓</option>
+            </select>
+            <button class="btn-clear" onclick="clearFilters()">✕ 重置</button>
+            <span class="count-badge" id="countDisplay">—</span>
+        </div>
+
+        <div class="filter-row">
+            <span class="filter-label">🌏 站点</span>
+            <select id="siteFilter" onchange="applyFilters()">
+                <option value="">全部站点</option>
+                <option value="BR">🇧🇷 BR</option><option value="MX">🇲🇽 MX</option><option value="MY">🇲🇾 MY</option>
+                <option value="PH">🇵🇭 PH</option><option value="SG">🇸🇬 SG</option><option value="TH">🇹🇭 TH</option>
+                <option value="TW">🇹🇼 TW</option><option value="VN">🇻🇳 VN</option>
+            </select>
+
+            <span class="filter-label">卖家类型</span>
+            <select id="sellerTypeFilter" onchange="applyFilters()">
+                <option value="">全部类型</option>
+                <option value="CB">CB</option>
+                <option value="Local">Local</option>
+            </select>
+
+            <span class="filter-label">官方店铺</span>
+            <select id="officialShopFilter" onchange="applyFilters()">
+                <option value="">全部</option>
+                <option value="Y">是</option>
+                <option value="N">否</option>
+            </select>
+
+            <span class="filter-label">是否新品</span>
+            <select id="isNewSkuFilter" onchange="applyFilters()">
+                <option value="">全部</option>
+                <option value="Y">是</option>
+                <option value="N">否</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="product-grid" id="productGrid"></div>
+    <div class="pagination" id="pagination"></div>
+</div>
+
+<div id="imageModal" onclick="this.style.display='none'"><img id="modalImg" src=""></div>
+<div id="toast"></div>
+
+<footer>Shopee Fashion Internal Selection System - CONFIDENTIAL</footer>
+
+<script>
+    // 原有逻辑变量定义
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSpzvgcuumlWbTyK87Cx-OmweMg86O8UAnNkv_AjRuxMXBQpr-njW5zvDiVftu9bdEn7g9bk0n58vy/pub?gid=454641794&single=true&output=csv';
+    const CACHE_KEY = 'shopee_fashion_data_v2';
+    const CACHE_TIME = 1000 * 60 * 60;
+    let products = [], filteredData = [], currentPage = 1;
+    const pageSize = 40;
+    const siteFlag = { BR:'🇧🇷', MX:'🇲🇽', MY:'🇲🇾', PH:'🇵🇭', SG:'🇸🇬', TH:'🇹🇭', TW:'🇹🇼', VN:'🇻🇳' };
+
+    // ==========================================
+    // 📢 新增代码模块 START：接入外部 Google Sheet 数据源
+    // ==========================================
+    const NEW_DATASOURCE_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSpzvgcuumlWbTyK87Cx-OmweMg86O8UAnNkv_AjRuxMXBQpr-njW5zvDiVftu9bdEn7g9bk0n58vy/pub?output=csv';
+
+    async function loadNewDataSource() {
+        console.log("正在加载新增数据源...");
+        try {
+            const response = await fetch(NEW_DATASOURCE_URL);
+            
+            // 权限与访问检查
+            if (!response.ok) {
+                throw new Error(`无法访问数据源: ${response.status} ${response.statusText}`);
+            }
+
+            const csvText = await response.text();
+            
+            // 简单的 CSV 解析（假设格式与原数据一致）
+            const rows = csvText.split('\n').map(row => {
+                // 处理 CSV 中的引号问题
+                return row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            }).filter(row => row.length > 5); // 过滤无效行
+
+            // 跳过表头
+            const newData = rows.slice(1);
+            
+            if (newData.length > 0) {
+                console.log(`成功加载新增数据：${newData.length} 条记录`);
+                // 合并数据：不影响原有 products 逻辑
+                products = products.concat(newData);
+                
+                // 重新渲染页面以包含新数据
+                applyFilters(); 
+                showToast(`成功同步 ${newData.length} 条额外数据`);
+            }
+        } catch (error) {
+            console.warn("⚠️ 新增数据源接入失败，请检查链接权限或网络:", error);
+            showToast("部分数据源加载失败，请检查公开访问权限");
+        }
+    }
+
+    // 在页面加载完成后独立启动新增任务
+    window.addEventListener('load', () => {
+        setTimeout(loadNewDataSource, 1500); // 延迟执行，确保不竞争原有加载资源
+    });
+    // ==========================================
+    // 📢 新增代码模块 END
+    // ==========================================
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    const clean = (s) => (s || "").toString().replace(/^[="]+|["]+$/g, '').trim();
+    const toNum = (s) => {
+        const val = clean(s).replace(/,/g, '');
+        return parseFloat(val) || 0;
+    };
+
+    /**
+     * 字段映射 (共 20 个字段)
+     */
+    const mapData = (row) => ({
+        title: clean(row[0]),
+        price_rmb: toNum(row[1]),
+        price_local: clean(row[2]),
+        imgUrl: clean(row[3]),
+        link: clean(row[4]),
+        l1: clean(row[5]),
+        l2: clean(row[6]),
+        l3: clean(row[7]),
+        update_date: clean(row[8]),
+        itemid: clean(row[9]),
+        site: clean(row[10]),
+        shop_name: clean(row[11]),
+        team: clean(row[12]),
+        ggp_name: clean(row[13]),
+        seller_type: clean(row[14]),
+        is_official_shop: clean(row[15]),
+        is_new_sku: clean(row[16]),
+        daily_sales: toNum(row[17]),
+        daily_revenue: toNum(row[18]),
+        ads_pos_neg: clean(row[19])
+    });
+
+    // ... 原有 init, applyFilters, render 等函数保持完全不变 ...
+    // (此处省略原有 JS 逻辑，保持原有文件内的函数定义)
+
+    async function init() {
+        const cache = localStorage.getItem(CACHE_KEY);
+        const cacheTime = localStorage.getItem(CACHE_KEY + '_time');
+
+        if (cache && cacheTime && (Date.now() - cacheTime < CACHE_TIME)) {
+            products = JSON.parse(cache);
+            processData();
+        } else {
+            try {
+                const res = await fetch(SHEET_URL);
+                const text = await res.text();
+                const rows = text.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+                products = rows.slice(1).filter(r => r.length > 5);
+                localStorage.setItem(CACHE_KEY, JSON.stringify(products));
+                localStorage.setItem(CACHE_KEY + '_time', Date.now().toString());
+                processData();
+            } catch (e) {
+                showToast("原有数据源同步失败");
+            }
+        }
+    }
+
+    function processData() {
+        if (products.length > 0) {
+            const lastDate = mapData(products[0]).update_date;
+            document.getElementById('lastUpdateDisplay').textContent = `数据更新至: ${lastDate}`;
+            updateL1();
+            applyFilters();
+        }
+    }
+
+    function updateL1() {
+        const l1Set = new Set(products.map(r => mapData(r).l1).filter(v => v));
+        const sel = document.getElementById('l1Filter');
+        sel.innerHTML = '<option value="">L1 类目</option>';
+        [...l1Set].sort().forEach(v => sel.innerHTML += `<option value="${v}">${v}</option>`);
+    }
+
+    function updateL2() {
+        const l1 = document.getElementById('l1Filter').value;
+        const l2Set = new Set(products.filter(r => !l1 || mapData(r).l1 === l1).map(r => mapData(r).l2).filter(v => v));
+        const sel = document.getElementById('l2Filter');
+        sel.innerHTML = '<option value="">L2 类目</option>';
+        [...l2Set].sort().forEach(v => sel.innerHTML += `<option value="${v}">${v}</option>`);
+        updateL3();
+    }
+
+    function updateL3() {
+        const l1 = document.getElementById('l1Filter').value;
+        const l2 = document.getElementById('l2Filter').value;
+        const l3Set = new Set(products.filter(r => (!l1 || mapData(r).l1 === l1) && (!l2 || mapData(r).l2 === l2)).map(r => mapData(r).l3).filter(v => v));
+        const sel = document.getElementById('l3Filter');
+        sel.innerHTML = '<option value="">L3 类目</option>';
+        [...l3Set].sort().forEach(v => sel.innerHTML += `<option value="${v}">${v}</option>`);
+    }
+
+    function applyFilters() {
+        const kw = document.getElementById('searchInput').value.toLowerCase();
+        const l1 = document.getElementById('l1Filter').value;
+        const l2 = document.getElementById('l2Filter').value;
+        const l3 = document.getElementById('l3Filter').value;
+        const minP = parseFloat(document.getElementById('minPrice').value) || 0;
+        const maxP = parseFloat(document.getElementById('maxPrice').value) || Infinity;
+        const site = document.getElementById('siteFilter').value;
+        const seller = document.getElementById('sellerTypeFilter').value;
+        const official = document.getElementById('officialShopFilter').value;
+        const newSku = document.getElementById('isNewSkuFilter').value;
+
+        filteredData = products.filter(r => {
+            const i = mapData(r);
+            const matchKw = !kw || i.title.toLowerCase().includes(kw) || i.itemid.includes(kw) || i.shop_name.toLowerCase().includes(kw) || i.team.toLowerCase().includes(kw);
+            return matchKw && (!l1 || i.l1 === l1) && (!l2 || i.l2 === l2) && (!l3 || i.l3 === l3) &&
+                   (i.price_rmb >= minP && i.price_rmb <= maxP) &&
+                   (!site || i.site === site) && (!seller || i.seller_type === seller) &&
+                   (!official || i.is_official_shop === official) && (!newSku || i.is_new_sku === newSku);
+        });
+
+        const sort = document.getElementById('sortOrder').value;
+        if (sort === 'dateDesc') filteredData.sort((a,b) => new Date(mapData(b).update_date) - new Date(mapData(a).update_date));
+        else if (sort === 'priceDesc') filteredData.sort((a,b) => mapData(b).price_rmb - mapData(a).price_rmb);
+        else if (sort === 'salesDesc') filteredData.sort((a,b) => mapData(b).daily_sales - mapData(a).daily_sales);
+        else if (sort === 'revDesc') filteredData.sort((a,b) => mapData(b).daily_revenue - mapData(a).daily_revenue);
+
+        document.getElementById('countDisplay').textContent = `共 ${filteredData.length} 款`;
+        render(filteredData, 1);
+    }
+
+    function render(data, page) {
+        currentPage = page;
+        const start = (page - 1) * pageSize;
+        const end = start + pageSize;
+        const pageData = data.slice(start, end);
+        const grid = document.getElementById('productGrid');
+        grid.innerHTML = pageData.map(r => {
+            const i = mapData(r);
+            return `
+                <div class="card">
+                    <div class="site-tag">${siteFlag[i.site] || i.site}</div>
+                    ${i.is_new_sku === 'Y' ? '<div class="new-sku-label">NEW</div>' : ''}
+                    <div class="img-container" onclick="openModal('${i.imgUrl}')"><img src="${i.imgUrl}" loading="lazy"></div>
+                    <div class="info">
+                        <div class="item-title">${i.title}</div>
+                        <div class="price-row">
+                            <span class="price-label">¥</span><span class="price-value">${i.price_rmb}</span>
+                            <span class="price-local">(${i.price_local})</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="pill pill-cat">${i.l2}</span>
+                            ${i.ads_pos_neg ? `<span class="pill ${i.ads_pos_neg.includes('+') ? 'pill-ado-pos' : 'pill-ado-neg'}">${i.ads_pos_neg}</span>` : ''}
+                        </div>
+                        <div class="stats-row">
+                            <div class="stat-box"><div class="stat-label">日销量</div><div class="stat-value sales-val">${i.daily_sales}</div></div>
+                            <div class="stat-box"><div class="stat-label">日销售额</div><div class="stat-value revenue-val">¥${Math.round(i.daily_revenue)}</div></div>
+                        </div>
+                        <div class="extra-info">
+                            <div class="extra-item"><span class="extra-label">团队:</span>${i.team}</div>
+                            <div class="extra-item"><span class="extra-label">店铺:</span>${i.shop_name}</div>
+                        </div>
+                        <div class="footer-row">
+                            <div class="itemid-box" onclick="copyText('${i.itemid}')">ID: ${i.itemid}</div>
+                            <a href="${i.link}" target="_blank" class="view-btn">🔗 访问</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        renderPagination(data.length);
+    }
+
+    function renderPagination(total) {
+        const totalPages = Math.ceil(total / pageSize);
+        const pag = document.getElementById('pagination');
+        if (totalPages <= 1) { pag.innerHTML = ''; return; }
+        let html = `<button onclick="render(filteredData, ${Math.max(1, currentPage - 1)})">Prev</button>`;
+        html += `<span style="font-size:13px; font-weight:600;">${currentPage} / ${totalPages}</span>`;
+        html += `<button onclick="render(filteredData, ${Math.min(totalPages, currentPage + 1)})">Next</button>`;
+        pag.innerHTML = html;
+    }
+
+    function copyText(txt) {
+        navigator.clipboard.writeText(txt).then(() => showToast("ID已复制"));
+    }
+
+    function openModal(src) {
+        document.getElementById('modalImg').src = src;
+        document.getElementById('imageModal').style.display = 'flex';
+    }
+
+    let timer;
+    function debouncedFilter() {
+        clearTimeout(timer);
+        timer = setTimeout(applyFilters, 300);
+    }
+
+    function clearFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('l1Filter').value = '';
+        document.getElementById('minPrice').value = '';
+        document.getElementById('maxPrice').value = '';
+        document.getElementById('siteFilter').value = '';
+        document.getElementById('sellerTypeFilter').value = '';
+        document.getElementById('officialShopFilter').value = '';
+        document.getElementById('isNewSkuFilter').value = '';
+        document.getElementById('sortOrder').value = 'dateDesc';
+        updateL2(); applyFilters();
+    }
+
+    init();
+</script>
+
+</body>
+</html>
