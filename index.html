@@ -335,19 +335,21 @@
     <script>
         // 配置
         const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQf98m2_gHhN9GkC9OOfY-8YyF-Qp_Qe8L_8Q4S_HqK_C_G-P_M_T_U_L_S_U/pub?output=csv';
-        const CACHE_KEY = 'shopee_fashion_data_v13';
-        const CACHE_TIME = 3600000; 
+        const CACHE_KEY = 'shopee_fashion_data_v12';
+        const CACHE_TIME = 3600000; // 1小时
         const ITEMS_PER_PAGE = 24;
 
         let products = [];
         let filteredData = [];
         let currentPage = 1;
 
+        // 工具函数：清洗CSV数据（去除引号等）
         const clean = (str) => {
             if (!str) return "";
             return str.replace(/^["']|["']$/g, '').replace(/""/g, '"').trim();
         };
 
+        // 数据映射关系
         const mapData = (row) => ({
             image: clean(row[0]),
             itemid: clean(row[1]),
@@ -367,6 +369,7 @@
             link: `https://shopee.${clean(row[10]).toLowerCase()}/product/${clean(row[2])}/${clean(row[1])}`
         });
 
+        // 初始化
         async function init() {
             const cache = localStorage.getItem(CACHE_KEY);
             const cacheTime = localStorage.getItem(CACHE_KEY + '_time');
@@ -380,6 +383,7 @@
                     if (!res.ok) throw new Error("Fetch Error");
                     const text = await res.text();
                     const rawRows = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+                    // 简单的CSV解析（考虑引号）
                     const rows = rawRows.map(line => line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
                     products = rows.slice(1);
                     
@@ -394,20 +398,22 @@
             }
         }
 
-        // 核心修复逻辑：数据去重与日期显示
+        // 数据处理：去重及显示更新日期
         function processData() {
             if (products.length > 0) {
                 const itemMap = new Map();
                 products.forEach(row => {
                     const item = mapData(row);
                     if (!item.itemid) return;
+                    
+                    // 相同ID保留最新日期
                     if (!itemMap.has(item.itemid) || new Date(item.update_date) > new Date(mapData(itemMap.get(item.itemid)).update_date)) {
                         itemMap.set(item.itemid, row);
                     }
                 });
                 products = Array.from(itemMap.values());
                 
-                // 设置页面加载成功的当天日期
+                // ✅ 锁定更新时间为当前加载当天的日期
                 const today = new Date().toISOString().split('T')[0];
                 const displayEl = document.getElementById('lastUpdateDisplay');
                 if (displayEl) {
@@ -419,6 +425,7 @@
             }
         }
 
+        // 类目联动逻辑
         function updateL1() {
             const l1Set = new Set();
             products.forEach(r => {
@@ -468,6 +475,7 @@
             applyFilters();
         }
 
+        // 核心筛选
         function applyFilters() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const site = document.getElementById('siteFilter').value;
@@ -490,7 +498,7 @@
                 const matchL3 = !l3 || i.l3 === l3;
                 const matchPrice = i.price >= minP && i.price <= maxP;
                 
-                // Seller Type 容错筛选
+                // ✅ 修复后的 Seller Type 筛选，确保 Local/CNCB 匹配准确
                 const matchSeller = !seller || i.seller_type.trim().toUpperCase() === seller.toUpperCase();
                 
                 const matchMall = !mall || (mall === 'Yes' ? (i.is_mall.toLowerCase() === 'yes' || i.is_mall === '1') : (i.is_mall.toLowerCase() !== 'yes' && i.is_mall !== '1'));
@@ -499,6 +507,7 @@
                 return matchSearch && matchSite && matchL1 && matchL2 && matchL3 && matchPrice && matchSeller && matchMall && matchNew;
             });
 
+            // 排序
             filteredData.sort((a, b) => {
                 const ia = mapData(a), ib = mapData(b);
                 if (sort === 'priceAsc') return ia.price - ib.price;
@@ -509,6 +518,7 @@
             render(filteredData, 1);
         }
 
+        // 渲染界面
         function render(data, page) {
             currentPage = page;
             const grid = document.getElementById('productGrid');
@@ -608,6 +618,7 @@
             setTimeout(() => t.style.display = 'none', 2000);
         }
 
+        // 启动系统
         init();
     </script>
 </body>
