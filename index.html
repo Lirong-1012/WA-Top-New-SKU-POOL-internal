@@ -423,47 +423,82 @@
         daily_revenue: toNum(row[18])
     });
 
-    async function init() {
-        const cache = localStorage.getItem(CACHE_KEY);
-        const cacheTime = localStorage.getItem(CACHE_KEY + '_time');
+    // --- 这是新代码：加入了详细错误捕获 ---
+async function init() {
+    // 检查是否有旧版本缓存并尝试清理，释放空间
+    const KEYS_TO_CLEAR = ['shopee_fashion_data_v1', 'shopee_fashion_data_v2', 'shopee_fashion_data_v3'];
+    KEYS_TO_CLEAR.forEach(k => localStorage.removeItem(k));
 
-        if (cache && cacheTime && (Date.now() - cacheTime < CACHE_TIME)) {
+    const cache = localStorage.getItem(CACHE_KEY);
+    const cacheTime = localStorage.getItem(CACHE_KEY + '_time');
+
+    if (cache && cacheTime && (Date.now() - cacheTime < CACHE_TIME)) {
+        try {
             products = JSON.parse(cache);
             processData();
-        } else {
-            try {
-                const res = await fetch(SHEET_URL);
-                if (!res.ok) throw new Error("Fetch Error");
-                const text = await res.text();
-                const rawRows = text.split(/\r?\n/).filter(line => line.trim().length > 0);
-                const rows = rawRows.map(line => line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
-                products = rows.slice(1);
-                
-                if (products.length > 0) {
-                    localStorage.setItem(CACHE_KEY, JSON.stringify(products));
-                    localStorage.setItem(CACHE_KEY + '_time', Date.now().toString());
-                    processData();
-                }
-            } catch (e) {
-                showToast("数据同步失败，请刷新重试");
-            }
+            return; // 成功加载缓存则退出
+        } catch (e) {
+            localStorage.removeItem(CACHE_KEY); // 缓存损坏则清理
         }
     }
 
-    function processData() {
+    try {
+        console.log("正在从服务器获取最新数据...");
+        const res = await fetch(SHEET_URL);
+        if (!res.ok) throw new Error("网络请求失败: " + res.status);
+        
+        const text = await res.text();
+        if (!text || text.length < 100) throw new Error("获取到的数据为空");
+
+        const rawRows = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+        // 跳过表头解析数据
+        const rows = rawRows.slice(1).map(line => line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+        
+        if (rows.length > 0) {
+            products = rows;
+            // 尝试存入缓存
+            try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify(products));
+                localStorage.setItem(CACHE_KEY + '_time', Date.now().toString());
+            } catch (quotaError) {
+                console.warn("存储空间依然不足，本次将不使用缓存加载");
+                // 如果依然存不下，就清理掉所有存储尝试直接运行
+                localStorage.clear(); 
+            }
+            processData();
+        } else {
+            throw new Error("CSV 解析后无有效行");
+        }
+    } catch (e) {
+        console.error("同步详细错误:", e);
+        showToast("加载失败: " + e.message);
+    }
+}
+   function processData() {
         if (products.length > 0) {
             const itemMap = new Map();
+            // 记录数据中的最大日期
+            let maxDateVal = "";
+
             products.forEach(row => {
                 const item = mapData(row);
                 if (!item.itemid) return;
+
+                // 比较并记录最新的日期
+                if (item.update_date && (!maxDateVal || item.update_date > maxDateVal)) {
+                    maxDateVal = item.update_date;
+                }
+                
                 if (!itemMap.has(item.itemid) || new Date(item.update_date) > new Date(mapData(itemMap.get(item.itemid)).update_date)) {
                     itemMap.set(item.itemid, row);
                 }
             });
             products = Array.from(itemMap.values());
             
-            const today = new Date().toISOString().split('T')[0]; // 格式为 2024-04-19
-document.getElementById('lastUpdateDisplay').textContent = `数据更新至: ${today}`;
+            // --- 这里的修改是关键 ---
+            // 如果 maxDateVal 存在则显示它，否则显示今天的日期
+            const displayDate = maxDateVal || new Date().toLocaleDateString();
+            document.getElementById('lastUpdateDisplay').textContent = `数据更新至: ${displayDate}`;
             
             updateL1();
             applyFilters();
@@ -532,12 +567,9 @@ document.getElementById('lastUpdateDisplay').textContent = `数据更新至: ${t
             const matchL3 = !l3 || i.l3 === l3;
             const matchPrice = (i.price_rmb >= minP && i.price_rmb <= maxP);
             const matchSite = !site || i.site === site;
-            
-            // ✅ 修改后的卖家类型筛选逻辑：通过双端大写化解决 Local/CNCB 匹配问题
-            let sType = i.seller_type || "";
-            // 兼容性处理：如果原始数据是 CB，则视为 CNCB
-            if (sType.toUpperCase() === 'CB') sType = 'CNCB';
-            const matchSeller = !seller || sType.toUpperCase().trim() === seller.toUpperCase().trim();
+           
+            // ✅ 修复后：移除 CB 转换，直接执行去空格和不区分大小写的匹配
+const matchSeller = !seller || i.seller_type.trim().toUpperCase() === seller.trim().toUpperCase();
             
             const matchOfficial = !official || i.is_official_shop === official;
             const matchNew = !newSku || i.is_new_sku === newSku;
