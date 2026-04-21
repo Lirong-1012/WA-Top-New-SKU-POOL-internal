@@ -474,32 +474,33 @@ async function init() {
         showToast("加载失败: " + e.message);
     }
 }
-   function processData() {
+  function processData() {
         if (products.length > 0) {
             const itemMap = new Map();
-            // 记录数据中的最大日期
-            let maxDateVal = "";
-
+            // 1. 数据去重逻辑
             products.forEach(row => {
                 const item = mapData(row);
                 if (!item.itemid) return;
-
-                // 比较并记录最新的日期
-                if (item.update_date && (!maxDateVal || item.update_date > maxDateVal)) {
-                    maxDateVal = item.update_date;
-                }
-                
                 if (!itemMap.has(item.itemid) || new Date(item.update_date) > new Date(mapData(itemMap.get(item.itemid)).update_date)) {
                     itemMap.set(item.itemid, row);
                 }
             });
             products = Array.from(itemMap.values());
             
-            // ✅ 修改后（强制使用页面加载当天日期，不依赖数据字段）
-const today = new Date().toISOString().split('T')[0]; 
-document.getElementById('lastUpdateDisplay').textContent = `数据更新至: ${today}`;
+            // 2. 设置日期（当天）
+            const today = new Date().toISOString().split('T')[0]; 
+            const el = document.getElementById('lastUpdateDisplay');
+            if(el) el.textContent = `数据更新至: ${today}`;
 
+            // 3. 运行渲染函数（这一步非常关键！）
+            updateL1();
+            applyFilters();
+        }
+    } // <--- 注意：这里必须有两个右大括号，分别闭合 if 和 function
+
+    // 下面是原本就有的 updateL1 函数，保持独立，不要包在上面
     function updateL1() {
+        const l1Set = new Set();
         // 修正：确保从全量数据中提取 L1（包括 Muslim Fashion）
         const l1Set = new Set();
         products.forEach(r => {
