@@ -495,15 +495,9 @@ async function init() {
             });
             products = Array.from(itemMap.values());
             
-            // --- 这里的修改是关键 ---
-            // 如果 maxDateVal 存在则显示它，否则显示今天的日期
-            const displayDate = maxDateVal || new Date().toLocaleDateString();
-            document.getElementById('lastUpdateDisplay').textContent = `数据更新至: ${displayDate}`;
-            
-            updateL1();
-            applyFilters();
-        }
-    }
+            // ✅ 修改后（强制使用页面加载当天日期，不依赖数据字段）
+const today = new Date().toISOString().split('T')[0]; 
+document.getElementById('lastUpdateDisplay').textContent = `数据更新至: ${today}`;
 
     function updateL1() {
         // 修正：确保从全量数据中提取 L1（包括 Muslim Fashion）
